@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caixinha Nubank — Controle de Cotas</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#171a21;
+    --panel-2:#1e2229;
+    --border:#2a2f3a;
+    --text:#e8eaed;
+    --muted:#8b92a3;
+    --accent:#8a2be2;
+    --accent-2:#b388ff;
+    --green:#36d399;
+    --red:#ff6b6b;
+    --amber:#ffb86b;
+    --radius:14px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(1200px 600px at 10% -10%, #2a1850 0%, transparent 60%),
+               radial-gradient(1000px 500px at 110% 10%, #0d2b3a 0%, transparent 55%),
+               var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-0.01em;}
+  .sub{color:var(--muted);font-size:14px;margin:0;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#8a2be2,#5b1fb0);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+  .card .label{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+  .card .value{font-size:22px;font-weight:700;}
+  .card .value.green{color:var(--green);}
+  .card .value.red{color:var(--red);}
+  .card .value.amber{color:var(--amber);}
+
+  .settings{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:22px;display:flex;gap:28px;flex-wrap:wrap;align-items:center;}
+  .settings .field{display:flex;flex-direction:column;gap:6px;}
+  .settings label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+  .settings input{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:14px;width:130px;}
+  .settings .pct{font-size:14px;color:var(--amber);font-weight:600;align-self:center;padding-top:14px;}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:4px 4px 16px;overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px;}
+  .panel-head h2{font-size:16px;margin:0;}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;transition:background .15s;}
+  .btn:hover{background:#7221c7;}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn.ghost:hover{background:var(--panel-2);}
+  .btn.small{padding:6px 10px;font-size:12.5px;}
+  .btn.danger{background:transparent;color:var(--red);}
+  .btn.danger:hover{background:#2a1515;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tbody tr:hover{background:var(--panel-2);}
+  tbody input[type="text"],tbody input[type="number"]{
+    background:transparent;border:1px solid transparent;border-radius:6px;color:var(--text);
+    padding:6px 8px;font-size:13.5px;width:100%;min-width:60px;
+  }
+  tbody input:hover,tbody input:focus{border-color:var(--border);background:var(--panel-2);outline:none;}
+  .nome-input{min-width:170px;}
+  thead th:first-child, tbody td:first-child{min-width:170px;}
+  .num-input{width:70px;text-align:right;}
+  .money{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .money.green{color:var(--green);font-weight:600;}
+  .money.red{color:var(--red);font-weight:600;}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.02em;}
+  .pill.ok{background:rgba(54,211,153,.14);color:var(--green);}
+  .pill.debt{background:rgba(255,107,107,.14);color:var(--red);}
+  .chk{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+  tfoot td{padding:12px;font-weight:700;border-top:2px solid var(--border);}
+  .empty{text-align:center;color:var(--muted);padding:30px;font-size:14px;}
+  .footer-note{color:var(--muted);font-size:12px;margin-top:16px;text-align:center;}
+  .scroll{overflow-x:auto;}
+  @media (max-width:640px){
+    .settings{gap:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">$</div>
+      <div>
+        <h1>Caixinha Nubank</h1>
+        <p class="sub">Controle de cotas, valorização e pendências</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn ghost small" id="exportBtn">Exportar CSV</button>
+      <button class="btn small" id="addBtn">+ Nova pessoa</button>
+    </div>
+  </header>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="settings">
+    <div class="field">
+      <label>Valor base da cota (R$)</label>
+      <input type="number" id="valorBase" step="0.01" min="0">
+    </div>
+    <div class="field">
+      <label>Valor atual / valorizado da cota (R$)</label>
+      <input type="number" id="valorAtual" step="0.01" min="0">
+    </div>
+    <div class="pct" id="pctInfo"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Participantes</h2>
+      <span class="sub" style="font-size:12px;">clique nos campos para editar</span>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Cotas</th>
+            <th>Meses pagos</th>
+            <th>Valor investido</th>
+            <th>Valor corrigido a receber</th>
+            <th>Deve à caixinha?</th>
+            <th>Valor devido</th>
+            <th>Total final a receber</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Totais</td>
+            <td class="money" id="totInvestido"></td>
+            <td class="money" id="totCorrigido"></td>
+            <td></td>
+            <td class="money" id="totDevido"></td>
+            <td class="money" id="totFinal"></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <p class="footer-note">
+    Fórmulas: Valor investido = cotas × valor base × meses pagos &nbsp;·&nbsp;
+    Valor corrigido = cotas × valor atual × meses pagos &nbsp;·&nbsp;
+    Total final = valor corrigido − valor devido &nbsp;·&nbsp;
+    Dados salvos automaticamente neste navegador.
+  </p>
+
+</div>
+
+<script>
+const LS_KEY = 'caixinha_nubank_v1';
+
+function defaultState(){
+  return {
+    valorBase: 0,
+    valorAtual: 0,
+    pessoas: []
+  };
+}
+
+function cryptoId(){
+  return 'p_' + Math.random().toString(36).slice(2, 10);
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    if(!parsed.pessoas) return defaultState();
+    return parsed;
+  }catch(e){
+    return defaultState();
+  }
+}
+
+function saveState(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+function brl(n){
+  if(isNaN(n)) n = 0;
+  return n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+
+let state = loadState();
+
+function calcPessoa(p){
+  const cotas = Number(p.cotas) || 0;
+  const meses = Number(p.meses) || 0;
+  const valorBase = Number(state.valorBase) || 0;
+  const valorAtual = Number(state.valorAtual) || 0;
+  const valorDevido = p.deve ? (Number(p.valorDevido) || 0) : 0;
+
+  const valorInvestido = cotas * valorBase * meses;
+  const valorCorrigido = cotas * valorAtual * meses;
+  const totalFinal = valorCorrigido - valorDevido;
+
+  return { valorInvestido, valorCorrigido, valorDevido, totalFinal };
+}
+
+function syncSettingsInputs(){
+  const vb = document.getElementById('valorBase');
+  const va = document.getElementById('valorAtual');
+  if(document.activeElement !== vb) vb.value = state.valorBase;
+  if(document.activeElement !== va) va.value = state.valorAtual;
+  updatePctInfo();
+}
+
+function updatePctInfo(){
+  const pct = state.valorBase > 0 ? ((state.valorAtual - state.valorBase) / state.valorBase * 100) : 0;
+  document.getElementById('pctInfo').textContent = `Valorização: ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+}
+
+function buildRowElement(p){
+  const tr = document.createElement('tr');
+  tr.dataset.id = p.id;
+  tr.innerHTML = `
+    <td><input type="text" class="nome-input" data-field="nome" value="${escapeHtml(p.nome)}" placeholder="Nome"></td>
+    <td><input type="number" class="num-input" data-field="cotas" value="${p.cotas}" min="0" step="1"></td>
+    <td><input type="number" class="num-input" data-field="meses" value="${p.meses}" min="0" step="1"></td>
+    <td class="money" data-cell="valorInvestido"></td>
+    <td class="money green" data-cell="valorCorrigido"></td>
+    <td style="text-align:center;"><input type="checkbox" class="chk" data-field="deve" ${p.deve ? 'checked' : ''}></td>
+    <td><input type="number" class="num-input" data-field="valorDevido" value="${p.valorDevido}" min="0" step="0.01" ${p.deve ? '' : 'disabled'} style="width:90px;"></td>
+    <td class="money" data-cell="totalFinal"></td>
+    <td><button class="btn danger small" data-action="remove">Remover</button></td>
+  `;
+  updateRowComputed(tr, p);
+  return tr;
+}
+
+// Updates only the read-only computed cells (and the valorDevido input when it
+// isn't the element currently being typed into) — never recreates an <input>,
+// so the user's cursor/focus is never disturbed while editing.
+function updateRowComputed(tr, p){
+  const c = calcPessoa(p);
+  tr.querySelector('[data-cell="valorInvestido"]').textContent = brl(c.valorInvestido);
+  tr.querySelector('[data-cell="valorCorrigido"]').textContent = brl(c.valorCorrigido);
+  const finalCell = tr.querySelector('[data-cell="totalFinal"]');
+  finalCell.textContent = brl(c.totalFinal);
+  finalCell.classList.toggle('red', c.totalFinal < 0);
+  finalCell.classList.toggle('green', c.totalFinal >= 0);
+
+  const devidoInput = tr.querySelector('[data-field="valorDevido"]');
+  if(document.activeElement !== devidoInput){
+    devidoInput.value = p.valorDevido;
+  }
+  devidoInput.disabled = !p.deve;
+}
+
+function updateAllRowsComputed(){
+  document.querySelectorAll('#tbody tr[data-id]').forEach(tr => {
+    const p = state.pessoas.find(x => x.id === tr.dataset.id);
+    if(p) updateRowComputed(tr, p);
+  });
+  recalcTotals();
+}
+
+function recalcTotals(){
+  let totInvestido = 0, totCorrigido = 0, totDevido = 0, totFinal = 0, pessoasComDivida = 0;
+  state.pessoas.forEach(p => {
+    const c = calcPessoa(p);
+    totInvestido += c.valorInvestido;
+    totCorrigido += c.valorCorrigido;
+    totDevido += c.valorDevido;
+    totFinal += c.totalFinal;
+    if(p.deve && (Number(p.valorDevido)||0) > 0) pessoasComDivida++;
+  });
+
+  document.getElementById('totInvestido').textContent = brl(totInvestido);
+  document.getElementById('totCorrigido').textContent = brl(totCorrigido);
+  document.getElementById('totDevido').textContent = brl(totDevido);
+  document.getElementById('totFinal').textContent = brl(totFinal);
+
+  renderCards(state.pessoas.length, totInvestido, totCorrigido, totDevido, totFinal, pessoasComDivida);
+}
+
+// Full rebuild of the table — only used for structural changes (load, add, remove).
+function renderTable(){
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  if(state.pessoas.length === 0){
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">Nenhuma pessoa cadastrada. Clique em "+ Nova pessoa".</td></tr>`;
+  } else {
+    state.pessoas.forEach(p => tbody.appendChild(buildRowElement(p)));
+  }
+
+  recalcTotals();
+}
+
+function render(){
+  syncSettingsInputs();
+  renderTable();
+}
+
+function renderCards(totalPessoas, totInvestido, totCorrigido, totDevido, totFinal, pessoasComDivida){
+  const cards = document.getElementById('cards');
+  cards.innerHTML = `
+    <div class="card">
+      <div class="label">Participantes</div>
+      <div class="value">${totalPessoas}</div>
+    </div>
+    <div class="card">
+      <div class="label">Total investido</div>
+      <div class="value">${brl(totInvestido)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Total corrigido (valorizado)</div>
+      <div class="value green">${brl(totCorrigido)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Total devido à caixinha</div>
+      <div class="value ${totDevido > 0 ? 'red' : ''}">${brl(totDevido)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Total final a pagar</div>
+      <div class="value amber">${brl(totFinal)}</div>
+    </div>
+    <div class="card">
+      <div class="label">Pessoas com pendência</div>
+      <div class="value ${pessoasComDivida > 0 ? 'red' : 'green'}">${pessoasComDivida}</div>
+    </div>
+  `;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// events
+document.getElementById('valorBase').addEventListener('input', e => {
+  state.valorBase = parseFloat(e.target.value) || 0;
+  saveState(); updatePctInfo(); updateAllRowsComputed();
+});
+document.getElementById('valorAtual').addEventListener('input', e => {
+  state.valorAtual = parseFloat(e.target.value) || 0;
+  saveState(); updatePctInfo(); updateAllRowsComputed();
+});
+
+document.getElementById('addBtn').addEventListener('click', () => {
+  state.pessoas.push({ id: cryptoId(), nome: '', cotas: 1, meses: 0, deve: false, valorDevido: 0 });
+  saveState(); render();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  let csv = 'Nome;Cotas;Meses Pagos;Valor Investido;Valor Corrigido;Deve;Valor Devido;Total Final\n';
+  state.pessoas.forEach(p => {
+    const c = calcPessoa(p);
+    csv += [
+      p.nome, p.cotas, p.meses,
+      c.valorInvestido.toFixed(2).replace('.', ','),
+      c.valorCorrigido.toFixed(2).replace('.', ','),
+      p.deve ? 'Sim' : 'Não',
+      c.valorDevido.toFixed(2).replace('.', ','),
+      c.totalFinal.toFixed(2).replace('.', ',')
+    ].join(';') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'caixinha_nubank.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('tbody').addEventListener('input', e => {
+  const tr = e.target.closest('tr');
+  if(!tr) return;
+  const id = tr.dataset.id;
+  const p = state.pessoas.find(x => x.id === id);
+  if(!p) return;
+  const field = e.target.dataset.field;
+  if(!field) return;
+
+  if(field === 'nome'){
+    p.nome = e.target.value;
+    saveState();
+    return; // nenhuma célula calculada depende do nome — não precisa atualizar nada
+  }
+
+  if(field === 'deve'){
+    p.deve = e.target.checked;
+  } else {
+    p[field] = parseFloat(e.target.value) || 0;
+  }
+
+  saveState();
+  updateRowComputed(tr, p);
+  recalcTotals();
+});
+
+document.getElementById('tbody').addEventListener('click', e => {
+  if(e.target.dataset.action === 'remove'){
+    const tr = e.target.closest('tr');
+    const id = tr.dataset.id;
+    state.pessoas = state.pessoas.filter(x => x.id !== id);
+    saveState(); render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
